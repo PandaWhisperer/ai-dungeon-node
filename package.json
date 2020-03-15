@@ -27,6 +27,7 @@
     "mocha": "^7.1.0"
   },
   "dependencies": {
+    "clear": "^0.1.0",
     "superagent": "^5.2.2"
   }
 }
