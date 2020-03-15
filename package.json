@@ -25,5 +25,8 @@
     "chai": "^4.2.0",
     "coffeescript": "^2.5.1",
     "mocha": "^7.1.0"
+  },
+  "dependencies": {
+    "superagent": "^5.2.2"
   }
 }
