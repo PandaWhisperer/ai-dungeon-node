@@ -17,23 +17,32 @@ class QuitSession extends Error
 # UTILS
 # -------------------------------------------------------------------------
 
-print   = terminal
-println = (text = '') -> terminal(text + '\n')
-readln  = (prompt = '') ->
-  print(prompt)
+# Clears the console
+clearScreen = -> terminal.fullscreen()
 
-  new Promise (resolve, reject) ->
-    terminal.inputField (error, answer) ->
-      println()
-      if error?
-        reject(error)
-      else
-        resolve(answer)
+exit = (code) -> terminal.processExit(code)
+
+print   = (str = '') ->
+  terminal.slowTyping str,
+    style: terminal.defaultColor()
+    flashStyle: false
+    delay: 42
+
+println = (str = '') -> print("#{str}\n")
+
+readln  = (prompt = '') ->
+  print("\n#{prompt}")
+
+  response = await terminal.inputField().promise
+
+  println('\n')
+
+  response
 
 terminal_width = process.stdin.columns
 
 terminal.on 'key', (name) ->
-  process.exit(0) if name == 'CTRL_C'
+  exit(0) if name == 'CTRL_C'
 
 exists  = (obj, key) -> key of obj and obj[key]
 
@@ -166,7 +175,7 @@ class AiDungeon
 
     if 'modes' of response.body
       modes = response.body["modes"]
-      print("Pick a setting...\n")
+      await println("Pick a setting...")
 
       selected_mode = await @choose_selection(modes)
 
@@ -178,7 +187,7 @@ class AiDungeon
         @make_custom_config()
 
       else
-        print("Select a character...\n")
+        await println("Select a character...")
 
         characters = modes[selected_mode]["characters"]
         selected_character = await @choose_selection(characters)
@@ -186,7 +195,7 @@ class AiDungeon
         if selected_character == "/quit"
           throw new QuitSession("/quit")
 
-        print("Enter your character's name...\n")
+        await println("Enter your character's name...")
 
         character_name = await readln(@prompt)
 
@@ -202,7 +211,7 @@ class AiDungeon
 
   # Initialize story
   init_story: ->
-    print("Generating story... Please wait...\n")
+    println("Generating story... Please wait...")
 
     response = await @session.post("https://api.aidungeon.io/sessions")
                              .send(@story_configuration)
@@ -216,7 +225,8 @@ class AiDungeon
 
     story_pitch = story_response["story"][0]["value"]
 
-    println(story_pitch)
+    clearScreen()
+    await println(story_pitch)
 
   # Function for when the input typed was ordinary
   process_regular_action: (user_input) ->
@@ -260,8 +270,7 @@ do ->
     if not ai_dungeon.auth_token
       await ai_dungeon.login()
 
-    # Clears the console
-    terminal.fullscreen()
+    clearScreen()
 
     # Displays the splash image accordingly
     ai_dungeon.display_splash() if terminal_width >= 80
@@ -276,10 +285,10 @@ do ->
     ai_dungeon.start_game()
 
   catch err
-    switch err
+    switch Object.getPrototypeOf(err)
       when FailedConfiguration
         println(err.message)
-        process.exit(1)
+        exit(1)
 
       when QuitSession
         println("Bye Bye!")
@@ -303,4 +312,4 @@ do ->
       else
        println("Totally unexpected exception:")
        println(err.message)
-       process.exit(1)
+       exit(1)
